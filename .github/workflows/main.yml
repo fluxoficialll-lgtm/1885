@@ -1,0 +1,50 @@
+name: Build Android APK (Offline Demo)
+
+on:
+  workflow_dispatch: # Permite iniciar manualmente
+
+jobs:
+  build:
+    name: Build & Generate APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Build Web App
+        run: npm run build
+        env:
+          # Deixe vazio para forçar o modo offline configurado no apiConfig.ts
+          VITE_API_BASE_URL: ""
+
+      - name: Initialize Capacitor
+        run: |
+          npx cap add android
+          npx cap sync android
+
+      - name: Build APK with Gradle
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: flux-app-debug
+          path: android/app/build/outputs/apk/debug/app-debug.apk
